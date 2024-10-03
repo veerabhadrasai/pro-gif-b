@@ -159,9 +159,10 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+
 @app.get("/")
-async def read_root():
-    return {"message": "Welcome to the FastAPI application!"}
+def read_root():
+    return {"message": "Hello World"}
 
 class TextCustomization(BaseModel):
     text: str
