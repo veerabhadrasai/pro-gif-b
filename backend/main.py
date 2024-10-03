@@ -56,7 +56,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # MongoDB configuration
 MONGO_URI = f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.od1nd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
