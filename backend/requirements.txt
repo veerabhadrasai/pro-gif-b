@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+motor
+python-dotenv
+moviepy
+requests
+aiofiles
+jwt
+passlib
+pytube
+stripe
