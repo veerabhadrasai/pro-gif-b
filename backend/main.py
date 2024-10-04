@@ -7,7 +7,7 @@ import os
 import uuid
 import json
 import logging
-from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+from moviepy.editor import *
 import aiofiles
 import requests
 from pytube import YouTube
@@ -25,7 +25,7 @@ from passlib.context import CryptContext
 import httpx
 from urllib.parse import quote_plus
 import moviepy.config as mpy_config
-from moviepy.editor import TextClip
+
 
 # Load the Stripe secret key
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")

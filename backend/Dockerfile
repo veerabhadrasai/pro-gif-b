@@ -1,7 +1,7 @@
 FROM python:3.11
 
 # Install ImageMagick
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && sudo apt-get install -y \
     imagemagick \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
