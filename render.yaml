@@ -1,8 +1,5 @@
 services:
   - type: web
     name: your-app-name
-    env: python
-    buildCommand: |
-      apt-get update && apt-get install -y imagemagick
-      pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port 10000
+    env: docker
+    buildCommand: ""  # Leave it empty since Docker will handle the build
