@@ -7,7 +7,7 @@ import os
 import uuid
 import json
 import logging
-from moviepy.editor import *
+from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
 import aiofiles
 import requests
 from pytube import YouTube
@@ -25,7 +25,7 @@ from passlib.context import CryptContext
 import httpx
 from urllib.parse import quote_plus
 import moviepy.config as mpy_config
-
+from moviepy.editor import TextClip
 
 # Load the Stripe secret key
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -73,23 +73,8 @@ os.makedirs(VIDEOS_DIR, exist_ok=True)
 
 # Specify the path to ImageMagick
 change_settings({
-    "IMAGEMAGICK_BINARY": "/usr/bin/magick"  # Adjust this if the path is different
-}) 
-
-import subprocess
-
-try:
-    txt_clip = TextClip("Hello World", fontsize=70, color='white')
-except Exception as e:
-    # Attempt to find the ImageMagick path
-    try:
-        # Run the 'which' command to find the path
-        magick_path = subprocess.check_output(['which', 'magick']).decode('utf-8').strip()
-        print(f"ImageMagick is located at: {magick_path}")
-    except Exception as path_error:
-        print("ImageMagick is not found.")
-    print(str(e))
-
+    "IMAGEMAGICK_BINARY": "/path/to/magick"
+})
 
 # JWT configuration
 SECRET_KEY = "your_secret_key"  # Change this to a secure random key
