@@ -71,7 +71,7 @@ os.makedirs(VIDEOS_DIR, exist_ok=True)
 
 # Specify the path to ImageMagick
 change_settings({
-    "IMAGEMAGICK_BINARY": os.getenv("IMAGEMAGICK_BINARY", "/usr/bin/magick")
+    "IMAGEMAGICK_BINARY": "/path/to/magick"
 })
 
 # JWT configuration
