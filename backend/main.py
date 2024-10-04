@@ -72,7 +72,9 @@ os.makedirs(GIFS_DIR, exist_ok=True)
 os.makedirs(VIDEOS_DIR, exist_ok=True)
 
 # Specify the path to ImageMagick
-change_settings({"IMAGEMAGICK_BINARY": "/usr/bin/magick"}) 
+change_settings({
+    "IMAGEMAGICK_BINARY": "/usr/bin/magick"  # Adjust this if the path is different
+}) 
 txt_clip = TextClip("Hello World", fontsize=70, color='white')
 
 # JWT configuration
