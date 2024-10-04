@@ -241,33 +241,39 @@ async def customize_and_generate_gif(
         raise HTTPException(status_code=404, detail="Video file not found")
 
     if start_time < 0 or end_time <= start_time:
-        logger.error("Invalid time range provided")
-        raise HTTPException(status_code=400, detail="Invalid time range provided")
+        raise HTTPException(status_code=422, detail="Invalid time range")
 
-    text_customization = json.loads(text_customization)
-
-    # Load the video
-    video_clip = VideoFileClip(video_path).subclip(start_time, end_time)
-
-    # Create text clip
-    txt_clip = TextClip(text_customization['text'], 
-                        fontsize=text_customization['font_size'],
-                        color=text_customization['color'], 
-                        font=text_customization['font_type'])
-    
-    txt_clip = txt_clip.set_position(text_customization['position']).set_duration(video_clip.duration)
-
-    # Create composite video clip
-    video = CompositeVideoClip([video_clip, txt_clip])
-    
-    gif_filename = f"{uuid.uuid4()}.gif"
-    gif_path = os.path.join(GIFS_DIR, gif_filename)
-    
-    # Write to gif file using moviepy
-    video.write_gif(gif_path)
-
-    # Upload GIF to Cloudinary
     try:
+        text_customization_data = json.loads(text_customization)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="Invalid JSON format for text_customization")
+
+    try:
+        # Create the GIF
+        gif_clip = VideoFileClip(video_path).subclip(start_time, end_time)
+
+        color = text_customization_data.get('color', 'white')
+        txt_clip = TextClip(
+            text_customization_data['text'],
+            fontsize=text_customization_data['font_size'],
+            color=color,
+            font=text_customization_data.get('font_type', 'Arial')
+        ).set_pos(text_customization_data.get('position', 'bottom')).set_duration(gif_clip.duration)
+
+        final_clip = CompositeVideoClip([gif_clip, txt_clip])
+        gif_filename = f"{uuid.uuid4()}.gif"
+        gif_path = os.path.join(GIFS_DIR, gif_filename)
+
+        # Write to gif file using moviepy
+        final_clip.write_gif(gif_path)
+        logger.info(f"GIF successfully generated at {gif_path}")
+        
+    except Exception as e:
+        logger.error(f"Failed to generate GIF: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate GIF")
+
+    try:
+        # Upload GIF to Cloudinary
         response = cloudinary.uploader.upload(gif_path, resource_type="image")
         logger.info(f"GIF uploaded to Cloudinary: {response['secure_url']}")
     except Exception as e:
@@ -278,14 +284,11 @@ async def customize_and_generate_gif(
     if os.path.exists(gif_path):
         os.remove(gif_path)
 
-    # Update user's GIF count in the database
+    # Update user's GIF count in MongoDB
     username = await get_current_user(token)
-    await users_collection.update_one(
-        {"username": username},
-        {"$inc": {"gif_count": 1}}  # Increment gif count
-    )
+    await users_collection.update_one({"username": username}, {"$inc": {"gif_count": 1}})
 
-    return {"gif_url": response['secure_url'], "message": "GIF created and uploaded successfully!"}
+    return {"message": "GIF generated and uploaded successfully", "gif_url": response['secure_url']}
 
 
 
