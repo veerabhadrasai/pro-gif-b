@@ -2,4 +2,7 @@ services:
   - type: web
     name: your-app-name
     env: docker
-    buildCommand: ""  # Leave it empty since Docker will handle the build
+    docker:
+      buildCommand: ""
+      dockerfilePath: ./Dockerfile
+      context: .
