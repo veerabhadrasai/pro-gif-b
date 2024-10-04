@@ -11,7 +11,6 @@ from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
 import aiofiles
 import requests
 from pytube import YouTube
-from moviepy.config import change_settings
 from dotenv import load_dotenv
 import jwt
 from datetime import datetime, timedelta
@@ -22,24 +21,25 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import validators  # Ensure you have this package installed
 import stripe
 from passlib.context import CryptContext
-import httpx
+import cloudinary
+import cloudinary.uploader  # Import the uploader module for Cloudinary
 from urllib.parse import quote_plus
-import moviepy.config as mpy_config
-from moviepy.editor import TextClip
+
 
 # Load the Stripe secret key
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# Replace with your actual username and password
-username = "veeraallamsetti"  # Your MongoDB username
-password = "veera@9676"     # Your MongoDB password, replace with the actual password
 
-# URL-encode username and password
-encoded_username = quote_plus(username)
-encoded_password = quote_plus(password)
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Cloudinary configuration
+cloudinary.config(
+    cloud_name="dhyffwjuj",
+    api_key="774686697335133",
+    api_secret="v0kggMRwdv2H7-pA4BlbzUqrW1E",
+)
 
 app = FastAPI()
 
@@ -58,6 +58,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Replace with your actual username and password
+username = "veeraallamsetti"  # Your MongoDB username
+password = "veera@9676"     # Your MongoDB password, replace with the actual password
+
+# URL-encode username and password
+encoded_username = quote_plus(username)
+encoded_password = quote_plus(password)
 
 # MongoDB configuration
 MONGO_URI = f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.od1nd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -71,10 +78,6 @@ VIDEOS_DIR = "downloads/"
 os.makedirs(GIFS_DIR, exist_ok=True)
 os.makedirs(VIDEOS_DIR, exist_ok=True)
 
-# Specify the path to ImageMagick
-change_settings({
-    "IMAGEMAGICK_BINARY": "/path/to/magick"
-})
 
 # JWT configuration
 SECRET_KEY = "your_secret_key"  # Change this to a secure random key
@@ -151,15 +154,6 @@ async def login(user: User):
     logger.info(f"User {user.username} logged in successfully, JWT token generated.")
     return {"access_token": access_token, "token_type": "bearer"}
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
 
 @app.get("/")
 def read_root():
@@ -184,6 +178,7 @@ async def check_gif_count(authorization: str = Header(...)):
     if user_info:
         return {"gif_count": user_info.get("gif_count", 0)}
     raise HTTPException(status_code=404, detail="User not found")
+
 
 @app.post("/upload_video")
 async def upload_video(
@@ -246,37 +241,53 @@ async def customize_and_generate_gif(
         raise HTTPException(status_code=404, detail="Video file not found")
 
     if start_time < 0 or end_time <= start_time:
-        raise HTTPException(status_code=422, detail="Invalid time range")
+        logger.error("Invalid time range provided")
+        raise HTTPException(status_code=400, detail="Invalid time range provided")
 
-    try:
-        text_customization_data = json.loads(text_customization)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=422, detail="Invalid JSON format for text_customization")
+    text_customization = json.loads(text_customization)
 
-    # Create the GIF
-    gif_clip = VideoFileClip(video_path).subclip(start_time, end_time)
+    # Load the video
+    video_clip = VideoFileClip(video_path).subclip(start_time, end_time)
 
-    color = text_customization_data.get('color', 'white')
-    txt_clip = TextClip(
-        text_customization_data['text'],
-        fontsize=text_customization_data['font_size'],
-        color=color,
-        font=text_customization_data.get('font_type', 'Arial')
-    ).set_pos(text_customization_data.get('position', 'bottom')).set_duration(gif_clip.duration)
+    # Create text clip
+    txt_clip = TextClip(text_customization['text'], 
+                        fontsize=text_customization['font_size'],
+                        color=text_customization['color'], 
+                        font=text_customization['font_type'])
+    
+    txt_clip = txt_clip.set_position(text_customization['position']).set_duration(video_clip.duration)
 
-    final_clip = CompositeVideoClip([gif_clip, txt_clip])
+    # Create composite video clip
+    video = CompositeVideoClip([video_clip, txt_clip])
+    
     gif_filename = f"{uuid.uuid4()}.gif"
     gif_path = os.path.join(GIFS_DIR, gif_filename)
+    
+    # Write to gif file using moviepy
+    video.write_gif(gif_path)
 
-    final_clip.write_gif(gif_path)
+    # Upload GIF to Cloudinary
+    try:
+        response = cloudinary.uploader.upload(gif_path, resource_type="image")
+        logger.info(f"GIF uploaded to Cloudinary: {response['secure_url']}")
+    except Exception as e:
+        logger.error(f"Failed to upload GIF to Cloudinary: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload GIF to Cloudinary")
 
-    logger.info(f"Generated GIF saved at: {gif_path}, exists: {os.path.exists(gif_path)}")
+    # Clean up local GIF file
+    if os.path.exists(gif_path):
+        os.remove(gif_path)
 
-    # Update user's GIF count in MongoDB
+    # Update user's GIF count in the database
     username = await get_current_user(token)
-    await users_collection.update_one({"username": username}, {"$inc": {"gif_count": 1}})
+    await users_collection.update_one(
+        {"username": username},
+        {"$inc": {"gif_count": 1}}  # Increment gif count
+    )
 
-    return {"gif_id": gif_filename}
+    return {"gif_url": response['secure_url'], "message": "GIF created and uploaded successfully!"}
+
+
 
 @app.post("/logout")
 async def logout(token: str = Depends(get_current_user)):

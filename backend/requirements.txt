@@ -9,5 +9,5 @@ jwt
 passlib
 pytube
 stripe
-
+cloudinary
 
