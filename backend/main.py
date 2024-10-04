@@ -75,7 +75,21 @@ os.makedirs(VIDEOS_DIR, exist_ok=True)
 change_settings({
     "IMAGEMAGICK_BINARY": "/usr/bin/magick"  # Adjust this if the path is different
 }) 
-txt_clip = TextClip("Hello World", fontsize=70, color='white')
+
+import subprocess
+
+try:
+    txt_clip = TextClip("Hello World", fontsize=70, color='white')
+except Exception as e:
+    # Attempt to find the ImageMagick path
+    try:
+        # Run the 'which' command to find the path
+        magick_path = subprocess.check_output(['which', 'magick']).decode('utf-8').strip()
+        print(f"ImageMagick is located at: {magick_path}")
+    except Exception as path_error:
+        print("ImageMagick is not found.")
+    print(str(e))
+
 
 # JWT configuration
 SECRET_KEY = "your_secret_key"  # Change this to a secure random key
