@@ -52,7 +52,10 @@ logger = logging.getLogger(__name__)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Change to your frontend origin in production
+     allow_origins=[
+        "http://localhost:3000",  # Your local development URL
+        "https://giffz.netlify.app/",  # Your production frontend URL
+    ],  # Change to your frontend origin in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
