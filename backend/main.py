@@ -247,30 +247,28 @@ async def customize_and_generate_gif(
         text_customization_data = json.loads(text_customization)
     except json.JSONDecodeError:
         raise HTTPException(status_code=422, detail="Invalid JSON format for text_customization")
+try:
+    # Create the GIF
+    gif_clip = VideoFileClip(video_path).subclip(start_time, end_time)
 
-    try:
-        # Create the GIF
-        gif_clip = VideoFileClip(video_path).subclip(start_time, end_time)
+    color = text_customization_data.get('color', 'white')
+    txt_clip = TextClip(
+        text_customization_data['text'],
+        fontsize=text_customization_data['font_size'],
+        color=color,
+        font=text_customization_data.get('font_type', 'Arial')
+    ).set_pos(text_customization_data.get('position', 'bottom')).set_duration(gif_clip.duration)
 
-        color = text_customization_data.get('color', 'white')
-        txt_clip = TextClip(
-            text_customization_data['text'],
-            fontsize=text_customization_data['font_size'],
-            color=color,
-            font=text_customization_data.get('font_type', 'Arial')
-        ).set_pos(text_customization_data.get('position', 'bottom')).set_duration(gif_clip.duration)
+    final_clip = CompositeVideoClip([gif_clip, txt_clip])
+    gif_filename = f"{uuid.uuid4()}.gif"
+    gif_path = os.path.join(GIFS_DIR, gif_filename)
 
-        final_clip = CompositeVideoClip([gif_clip, txt_clip])
-        gif_filename = f"{uuid.uuid4()}.gif"
-        gif_path = os.path.join(GIFS_DIR, gif_filename)
-
-        # Write to gif file using moviepy
-        final_clip.write_gif(gif_path)
-        logger.info(f"GIF successfully generated at {gif_path}")
-        
-    except Exception as e:
-        logger.error(f"Failed to generate GIF: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to generate GIF")
+    # Write to gif file using moviepy
+    final_clip.write_gif(gif_path)
+    logger.info(f"GIF successfully generated at {gif_path}")
+except Exception as e:
+    logger.error(f"Failed to generate GIF: {str(e)}")
+    raise HTTPException(status_code=500, detail="Failed to generate GIF")
 
     try:
         # Upload GIF to Cloudinary
