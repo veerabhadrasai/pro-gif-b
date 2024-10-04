@@ -52,9 +52,9 @@ logger = logging.getLogger(__name__)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-     allow_origins=[
-        "*"  # Your production frontend URL
-    ],  # Change to your frontend origin in production
+    allow_origins=[
+        "https://giffz.netlify.app"  # Specify your frontend URL
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
