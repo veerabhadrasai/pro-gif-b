@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://giffz.netlify.app","http://localhost:300"  # Specify your frontend URL
+        "https://giffz.netlify.app","http://localhost:3000"  # Specify your frontend URL
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
